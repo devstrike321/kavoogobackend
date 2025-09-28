@@ -50,4 +50,9 @@ const teamAuth = (req, res, next) => {
   else res.status(403).json({ msg: 'Not authorized as team' });
 };
 
-module.exports = { protect, userAuth, partnerAuth, adminAuth, teamAuth };
+const dashboardAuth = (req, res, next) => {
+  if (req.role === 'dashboardUser' && (req.role === 'partner' || req.role === 'adminUser')) next();
+  else res.status(403).json({ msg: 'Not authorized for dashboard' });
+}
+
+module.exports = { protect, userAuth, partnerAuth, adminAuth, teamAuth, dashboardAuth };
