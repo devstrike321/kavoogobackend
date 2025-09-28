@@ -20,7 +20,6 @@ const upload = multer({
   }),
 });
 
-router.post('/login', login);
 router.patch('/me', protect, partnerAuth, editDetails);
 router.post('/campaigns', protect, partnerAuth, upload.single('video'), createCampaign);
 router.get('/campaigns', protect, partnerAuth, getCampaigns);

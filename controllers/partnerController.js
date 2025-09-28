@@ -3,15 +3,6 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const Campaign = require('../models/campaignSchema');
 
-const login = async (req, res) => {
-  const { email, password } = req.body;
-  const partner = await Partner.findOne({ email });
-  if (!partner || !(await bcrypt.compare(password, partner.password))) {
-    return res.status(400).json({ msg: 'Invalid credentials' });
-  }
-  const token = jwt.sign({ id: partner._id, role: 'partner' }, process.env.JWT_SECRET, { expiresIn: '30d' });
-  res.json({ token });
-};
 
 const editDetails = async (req, res) => {
   const updates = Object.keys(req.body);
@@ -55,4 +46,4 @@ const getCampaigns = async (req, res) => {
   res.json(campaigns);
 };
 
-module.exports = { login, editDetails, createCampaign, getCampaigns };
+module.exports = { editDetails, createCampaign, getCampaigns };
