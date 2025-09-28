@@ -25,6 +25,12 @@ const upload = multer({
   }),
 });
 
+router.get('/:id', protect, dashboardAuth, async (req, res) => {
+  console.log(req.params.id);
+  const campaigns = await Campaign.findById(req.params.id);
+  if (!campaigns) return res.status(404).json({ error: 'Campaign not found' });
+  res.json(campaigns);
+});
 router.post('/', protect, dashboardAuth, upload.single('video'), createCampaign);
 
 module.exports = router;

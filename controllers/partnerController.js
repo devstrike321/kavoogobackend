@@ -6,7 +6,7 @@ const Campaign = require('../models/campaignSchema');
 
 const editDetails = async (req, res) => {
   const updates = Object.keys(req.body);
-  const allowed = ['partnerName', 'phone', 'status', 'industry', 'contactPerson', 'email'];
+  const allowed = ['partnerName', 'phone', 'status', 'industry', 'contactPerson', 'email', 'country'];
   const partner = req.user;
   updates.forEach(update => {
     if (allowed.includes(update)) partner[update] = req.body[update];
@@ -15,12 +15,18 @@ const editDetails = async (req, res) => {
   res.json(partner);
 };
 
+const getDetail = async (req, res) => {
+  const partner = await Partner.findById(req.params.id).select('-password').populate('campaigns');
+  res.json(partner);
+}
+
 const createCampaign = async (req, res) => {
+  console.log(req.body);
   const {
     name, description, partner, activityType, startDate, endDate,
     minAge, maxAge, country, city, employmentStatus, educationLevel,
     minSalary, maxSalary, maritalStatus, hasKids, rewardAmount,
-    mobileProvider, totalBudget, costPerUser, maxUsers, surveyLink, videoDuration
+    mobileProvider, totalBudget, costPerUser, maxUsers, surveyLink
   } = req.body;
 
   const campaign = new Campaign({
@@ -32,15 +38,16 @@ const createCampaign = async (req, res) => {
   });
 
   if (req.file) {
-    campaign.video = { url: req.file.location, duration: videoDuration };
+    campaign.video = { url: req.file.location };
   }
 
+  console.log(partner);
   const curPartner = await Partner.findById(partner);
   if (!curPartner) return res.status(404).json({ error: 'Partner not found' });
 
   await campaign.save();
-  req.curPartner.campaigns.push(campaign._id);
-  await req.curPartner.save();
+  curPartner.campaigns.push(campaign._id);
+  await curPartner.save();
   res.json(campaign);
 };
 
@@ -49,4 +56,4 @@ const getCampaigns = async (req, res) => {
   res.json(campaigns);
 };
 
-module.exports = { editDetails, createCampaign, getCampaigns };
+module.exports = { editDetails, createCampaign, getCampaigns, getDetail };
