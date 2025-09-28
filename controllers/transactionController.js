@@ -6,8 +6,62 @@ const getTransactions = async (req, res) => {
   let query = {};
   if (userId) query.user = userId;
   if (campaignId) query.campaign = campaignId;
+  if (partnerId) query['campaign.partner'] = partnerId;
   // Add more filters as needed
-  const transactions = await Transaction.find(query).populate('user campaign');
+
+  const pipeline = [
+      {
+        $lookup: {
+          from: 'campaigns', // Collection name (lowercase, plural as per Mongoose default)
+          localField: 'campaign',
+          foreignField: '_id',
+          as: 'campaign'
+        }
+      },
+      {
+        $lookup: {
+          from: 'partners', // Collection name
+          let: { partnerIds: '$campaign.partner' },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $in: ['$_id', '$$partnerIds'] }
+              }
+            }
+          ],
+          as: 'partners'
+        }
+      },
+      {
+        $addFields: {
+          campaign: {
+            $map: {
+              input: '$campaign',
+              as: 'c',
+              in: {
+                $mergeObjects: [
+                  '$$c',
+                  {
+                    partner: {
+                      $filter: {
+                        input: '$partners',
+                        as: 'p',
+                        cond: { $eq: ['$$p._id', '$$c.partner'] }
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        }
+      },
+      {
+        $unset: 'partners'
+      }
+    ];
+
+    const transactions = await Transaction.aggregate(pipeline);
   res.json(transactions);
 };
 

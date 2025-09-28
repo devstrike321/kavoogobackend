@@ -115,7 +115,17 @@ const getUsers = async (req, res) => {
 };
 
 const getCampaigns = async (req, res) => {
-  const campaigns = await Campaign.find({});
+  const pipeline = [
+      {
+        $lookup: {
+          from: 'partners', // Collection name (lowercase, plural as per Mongoose default)
+          localField: 'partner',
+          foreignField: '_id',
+          as: 'partner'
+        }
+      },
+    ];
+  const campaigns = await Campaign.aggregate([pipeline]);
   res.json(campaigns);
 };
 

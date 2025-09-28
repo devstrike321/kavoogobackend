@@ -17,7 +17,7 @@ const editDetails = async (req, res) => {
 
 const createCampaign = async (req, res) => {
   const {
-    name, description, activityType, startDate, endDate,
+    name, description, partner, activityType, startDate, endDate,
     minAge, maxAge, country, city, employmentStatus, educationLevel,
     minSalary, maxSalary, maritalStatus, hasKids, rewardAmount,
     mobileProvider, totalBudget, costPerUser, maxUsers, surveyLink, videoDuration
@@ -28,16 +28,19 @@ const createCampaign = async (req, res) => {
     minAge, maxAge, country, city, employmentStatus, educationLevel,
     minSalary, maxSalary, maritalStatus, hasKids, rewardAmount,
     mobileProvider, totalBudget, costPerUser, maxUsers, surveyLink,
-    partner: req.user._id,
+    partner,
   });
 
   if (req.file) {
     campaign.video = { url: req.file.location, duration: videoDuration };
   }
 
+  const curPartner = await Partner.findById(partner);
+  if (!curPartner) return res.status(404).json({ error: 'Partner not found' });
+
   await campaign.save();
-  req.user.campaigns.push(campaign._id);
-  await req.user.save();
+  req.curPartner.campaigns.push(campaign._id);
+  await req.curPartner.save();
   res.json(campaign);
 };
 

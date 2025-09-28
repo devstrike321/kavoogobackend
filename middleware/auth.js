@@ -51,7 +51,7 @@ const teamAuth = (req, res, next) => {
 };
 
 const dashboardAuth = (req, res, next) => {
-  if (req.role === 'dashboardUser' && (req.role === 'partner' || req.role === 'adminUser')) next();
+  if (req.role === 'partner' || req.role === 'adminUser') next();
   else res.status(403).json({ msg: 'Not authorized for dashboard' });
 }
 

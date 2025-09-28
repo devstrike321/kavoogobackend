@@ -21,7 +21,6 @@ const upload = multer({
 });
 
 router.patch('/me', protect, partnerAuth, editDetails);
-router.post('/campaigns', protect, partnerAuth, upload.single('video'), createCampaign);
 router.get('/campaigns', protect, partnerAuth, getCampaigns);
 
 module.exports = router;
