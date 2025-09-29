@@ -1,5 +1,6 @@
 const Transaction = require("../models/transactionSchema");
 const { Parser } = require("json2csv");
+const mongoose = require("mongoose");
 
 const getTransactions = async (req, res) => {
   try {
@@ -70,6 +71,72 @@ const getTransactions = async (req, res) => {
   }
 };
 
+const getTransaction = async (req, res) => {
+  try {
+    const id = req.params.id;
+
+    console.log(id);
+    // Add more filters as needed
+
+    const pipeline = [
+      {
+        $match: {
+          _id: new mongoose.Types.ObjectId(id), // Match the specific transaction by ID
+        },
+      },
+      {
+        $lookup: {
+          from: "campaigns", // Collection name (lowercase, plural as per Mongoose default)
+          localField: "campaign",
+          foreignField: "_id",
+          as: "campaign",
+        },
+      },
+      {
+        $unwind: {
+          path: "$campaign",
+          preserveNullAndEmptyArrays: true, // Handle cases where no campaign is found
+        },
+      },
+      {
+        $lookup: {
+          from: "partners", // Collection name
+          let: { partnerId: "$campaign.partner" },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$partnerId"] },
+              },
+            },
+          ],
+          as: "partner",
+        },
+      },
+      {
+        $unwind: {
+          path: "$partner",
+          preserveNullAndEmptyArrays: true, // Handle cases where no partner is found
+        },
+      },
+      {
+        $addFields: {
+          "campaign.partner": "$partner", // Embed the partner object directly into campaign
+        },
+      },
+      {
+        $unset: ["partner"], // Clean up the temporary partner field
+      },
+    ];
+
+    const transaction = (await Transaction.aggregate(pipeline))[0];
+    console.log(transaction);
+    res.json(transaction);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
 const exportTransactions = async (req, res) => {
   try {
     const transactions = await Transaction.find({}).populate("user campaign");
@@ -91,4 +158,4 @@ const exportTransactions = async (req, res) => {
   }
 };
 
-module.exports = { getTransactions, exportTransactions };
+module.exports = { getTransaction, getTransactions, exportTransactions };

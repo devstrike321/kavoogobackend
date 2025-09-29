@@ -34,6 +34,16 @@ const login = async (req, res) => {
   }
 };
 
+const getTeamMembers = async(req, res) => {
+  try {
+    const teamMembers = await AdminUser.find({});
+    res.json(teamMembers);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
 const addTeamMember = async (req, res) => {
   try {
     const {
@@ -166,8 +176,13 @@ const getCampaigns = async (req, res) => {
 
 const addMobileProvider = async (req, res) => {
   try {
+    console.log(req.body);
     const { balance } = req.body;
-    const provider = new MobileProvider({ balance });
+    let provider = await MobileProvider.findOne({});
+    if(!provider)
+      provider = new MobileProvider({ balance });
+    else
+      provider.balance += Number(balance);
     await provider.save();
     res.json(provider);
   } catch (err) {
@@ -206,6 +221,7 @@ const getMobileProviders = async (req, res) => {
 
 module.exports = {
   login,
+  getTeamMembers,
   addTeamMember,
   editTeamMember,
   getPartners,

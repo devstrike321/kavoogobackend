@@ -3,6 +3,7 @@ const dotenv = require('dotenv');
 const connectDB = require('./config/db');
 const AWS = require('aws-sdk');
 const cors = require('cors');
+const path = require('path');
 
 dotenv.config();
 connectDB();
@@ -14,7 +15,9 @@ app.use(cors({
 	origin: 'http://localhost:3000',
 	methods: ['GET','POST','PUT','DELETE','OPTIONS'],
 	allowedHeaders: ['Content-Type', 'Authorization'],
-}))
+}));
+
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/api/users', require('./routes/userRoutes'));

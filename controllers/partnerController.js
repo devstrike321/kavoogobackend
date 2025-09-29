@@ -41,6 +41,7 @@ const getDetail = async (req, res) => {
 
 const createCampaign = async (req, res) => {
   try {
+    console.log(req.file);
     const {
       name,
       description,
@@ -59,12 +60,13 @@ const createCampaign = async (req, res) => {
       maritalStatus,
       hasKids,
       rewardAmount,
-      mobileProvider,
       totalBudget,
       costPerUser,
       maxUsers,
       surveyLink,
     } = req.body;
+
+    console.log(hasKids);
 
     const campaign = new Campaign({
       name,
@@ -83,7 +85,6 @@ const createCampaign = async (req, res) => {
       maritalStatus,
       hasKids,
       rewardAmount,
-      mobileProvider,
       totalBudget,
       costPerUser,
       maxUsers,
@@ -92,7 +93,8 @@ const createCampaign = async (req, res) => {
     });
 
     if (req.file) {
-      campaign.video = { url: req.file.location };
+      campaign.video = { url: req.file.path };
+      console.log(campaign.video);
     }
 
     console.log(partner);
@@ -101,6 +103,8 @@ const createCampaign = async (req, res) => {
       return res.status(404).json({ error: "Partner not found" });
 
     await campaign.save();
+
+    console.log(campaign);
     curPartner.campaigns.push(campaign._id);
     await curPartner.save();
     res.json(campaign);
