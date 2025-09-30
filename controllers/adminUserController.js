@@ -154,6 +154,16 @@ const getUsers = async (req, res) => {
   }
 };
 
+const getUser = async(req,res) => {
+  try {
+    const user = await User.findById(req.params.id);
+    res.json(user);
+  } catch(err) {
+    console.error(err);
+    res.status(500).json({error: "Server error"});
+  }
+};
+
 const getCampaigns = async (req, res) => {
   try {
     const pipeline = [
@@ -227,6 +237,7 @@ module.exports = {
   getPartners,
   editPartner,
   getUsers,
+  getUser,
   getCampaigns,
   addMobileProvider,
   editMobileProvider,
