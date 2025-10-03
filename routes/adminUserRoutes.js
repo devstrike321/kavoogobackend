@@ -6,6 +6,7 @@ const {
   addTeamMember,
   editTeamMember,
   getPartners,
+  getPartner,
   editPartner,
   getUsers,
   getUser,
@@ -21,8 +22,9 @@ router.get('/team', protect, adminAuth, getTeamMembers);
 router.post('/team', protect, adminAuth, addTeamMember);
 router.patch('/team/:id', protect, adminAuth, editTeamMember);
 router.get('/partners', protect, teamAuth, getPartners);
-router.patch('/partners/:id', protect, teamAuth, editPartner);
-router.get('/users', protect, teamAuth, getUsers);
+router.get('/partners/:id', protect, teamAuth, getPartner);
+router.patch('/partners/:id', protect, dashboardAuth, editPartner);
+router.get('/users', protect, dashboardAuth, getUsers);
 router.get('/users/:id', protect, dashboardAuth, getUser);
 router.get('/campaigns', protect, teamAuth, getCampaigns);
 router.post('/providers', protect, adminAuth, addMobileProvider);

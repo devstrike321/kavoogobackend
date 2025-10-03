@@ -34,7 +34,7 @@ const login = async (req, res) => {
   }
 };
 
-const getTeamMembers = async(req, res) => {
+const getTeamMembers = async (req, res) => {
   try {
     const teamMembers = await AdminUser.find({});
     res.json(teamMembers);
@@ -42,7 +42,7 @@ const getTeamMembers = async(req, res) => {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
-}
+};
 
 const addTeamMember = async (req, res) => {
   try {
@@ -111,7 +111,10 @@ const editTeamMember = async (req, res) => {
 
 const getPartners = async (req, res) => {
   try {
-    const partners = await Partner.find({});
+    const partners = await Partner.find({}).populate({
+      path: "campaigns",
+      options: { sort: { updatedAt: -1 } },
+    });
     res.json(partners);
   } catch (err) {
     console.error(err);
@@ -128,15 +131,31 @@ const editPartner = async (req, res) => {
       "phone",
       "status",
       "industry",
+      "country",
       "contactPerson",
       "email",
     ];
+
+    console.log(updates);
+
     const partner = await Partner.findById(id);
     if (!partner) return res.status(404).json({ msg: "Partner not found" });
     updates.forEach((update) => {
       if (allowed.includes(update)) partner[update] = req.body[update];
     });
+
+    console.log(partner);
     await partner.save();
+    res.json(partner);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+};
+
+const getPartner = async (req, res) => {
+  try {
+    const partner = await Partner.findById(req.params.id);
     res.json(partner);
   } catch (err) {
     console.error(err);
@@ -146,7 +165,16 @@ const editPartner = async (req, res) => {
 
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({});
+    const users = await User.find({})
+      .populate({
+        path: "transactions",
+        populate: {
+          path: "campaign",
+          model: "Campaign", // Ensures latest campaign by most recent update
+        },
+        options: { sort: { updatedAt: -1 } },
+      })
+      .lean();
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -154,18 +182,27 @@ const getUsers = async (req, res) => {
   }
 };
 
-const getUser = async(req,res) => {
+const getUser = async (req, res) => {
   try {
     const user = await User.findById(req.params.id);
+    console.log(user);
+    console.log(req.params.id);
     res.json(user);
-  } catch(err) {
+  } catch (err) {
     console.error(err);
-    res.status(500).json({error: "Server error"});
+    res.status(500).json({ error: "Server error" });
   }
 };
 
 const getCampaigns = async (req, res) => {
   try {
+    const updateCampaigns = await Campaign.find({});
+    updateCampaigns.map((camp) => {
+      if(camp.endDate < new Date()) {
+        camp.status = "InActive";
+      }
+      camp.save();
+    });
     const pipeline = [
       {
         $lookup: {
@@ -189,10 +226,8 @@ const addMobileProvider = async (req, res) => {
     console.log(req.body);
     const { balance } = req.body;
     let provider = await MobileProvider.findOne({});
-    if(!provider)
-      provider = new MobileProvider({ balance });
-    else
-      provider.balance += Number(balance);
+    if (!provider) provider = new MobileProvider({ balance });
+    else provider.balance += Number(balance);
     await provider.save();
     res.json(provider);
   } catch (err) {
@@ -236,6 +271,7 @@ module.exports = {
   editTeamMember,
   getPartners,
   editPartner,
+  getPartner,
   getUsers,
   getUser,
   getCampaigns,

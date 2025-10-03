@@ -1,6 +1,8 @@
 const Transaction = require("../models/transactionSchema");
 const { Parser } = require("json2csv");
 const mongoose = require("mongoose");
+const User = require('../models/userSchema');
+const Campaign = require('../models/campaignSchema');
 
 const getTransactions = async (req, res) => {
   try {
@@ -12,6 +14,14 @@ const getTransactions = async (req, res) => {
     // Add more filters as needed
 
     const pipeline = [
+      {
+        $lookup: {
+          from: "users", // Collection name (lowercase, plural as per Mongoose default)
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
       {
         $lookup: {
           from: "campaigns", // Collection name (lowercase, plural as per Mongoose default)
@@ -82,6 +92,20 @@ const getTransaction = async (req, res) => {
       {
         $match: {
           _id: new mongoose.Types.ObjectId(id), // Match the specific transaction by ID
+        },
+      },
+      {
+        $lookup: {
+          from: "users", // Collection name (lowercase, plural as per Mongoose default)
+          localField: "user",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: {
+          path: "$user",
+          preserveNullAndEmptyArrays: true, // Handle cases where no campaign is found
         },
       },
       {

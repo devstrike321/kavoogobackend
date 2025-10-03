@@ -9,6 +9,7 @@ const partnerSchema = new mongoose.Schema(
     status: { type: String, default: 'active' },
     industry: String,
     contactPerson: String,
+    country: String,
     campaigns: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' }],
   },
   { timestamps: true }

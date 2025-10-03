@@ -97,10 +97,13 @@ const createCampaign = async (req, res) => {
       console.log(campaign.video);
     }
 
-    console.log(partner);
     const curPartner = await Partner.findById(partner);
     if (!curPartner)
       return res.status(404).json({ error: "Partner not found" });
+
+    if(endDate < new Date()) {
+      campaign.status = "InActive";
+    }
 
     await campaign.save();
 
@@ -117,6 +120,12 @@ const createCampaign = async (req, res) => {
 const getCampaigns = async (req, res) => {
   try {
     const campaigns = await Campaign.find({ partner: req.user._id });
+    campaigns.map((camp) => {
+      if(camp.endDate < new Date()) {
+        camp.status = "InActive";
+      }
+      camp.save();
+    });
     res.json(campaigns);
   } catch (err) {
     console.error(err);

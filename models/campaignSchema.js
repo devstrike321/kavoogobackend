@@ -7,7 +7,7 @@ const campaignSchema = new mongoose.Schema(
     partner: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
     activityType: { type: String, enum: ['Video', 'Video_survey', 'Survey'] },
     startDate: Date,
-    status: { type: String, enum: ['Active', 'Paused', 'Completed'], default: 'Active' },
+    status: { type: String, enum: ['Active', 'InActive'], default: 'Active' },
     endDate: Date,
     minAge: Number,
     maxAge: Number,
