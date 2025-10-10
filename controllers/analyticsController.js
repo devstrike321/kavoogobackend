@@ -1,78 +1,65 @@
-const Campaign = require("../models/campaignSchema");
-const Transaction = require("../models/transactionSchema");
-const User = require("../models/userSchema");
-const Partner = require("../models/partnerSchema");
+const { Campaign, Transaction, User, Partner } = require("../models");
+const { Op, fn, col, literal } = require("sequelize");
 
 const getAnalytics = async (req, res) => {
   try {
-    const activeCampaigns = await Campaign.countDocuments({
-      endDate: { $gte: new Date() },
-      status: "Active",
+    console.log("Fetching analytics data...");
+    // Active campaigns (endDate >= now and status = 'Active')
+    const activeCampaigns = await Campaign.count({
+      where: {
+        endDate: { [Op.gte]: new Date() },
+        status: "Active",
+      },
     });
-    const completions = await Transaction.aggregate([
-      {
-        $match: {
-          status: "completed", // Match the specific transaction by ID
-        },
-      },
-      {
-        $lookup: {
-          from: "campaigns", // Collection name (lowercase, plural as per Mongoose default)
-          localField: "campaign",
-          foreignField: "_id",
-          as: "campaign",
-        },
-      },
-      {
-        $unwind: {
-          path: "$campaign",
-          preserveNullAndEmptyArrays: true, // Handle cases where no campaign is found
-        },
-      },
-      {
-        $group: {
-          _id: "$campaign.activityType",
-          count: { $sum: 1 },
-        },
-      },
-    ]);
-    const userEngagement = await User.find({});
-    const totalPartner = await Partner.countDocuments({});
+
+    // Transaction completions grouped by campaign activityType
+    const completions = await Transaction.findAll({
+      where: { status: "completed" },
+      include: [{
+        model: Campaign
+      }],
+    });
+
+    // Group completions by activityType
+    const completionCounts = {};
+    completions.forEach(tx => {
+      const type = tx.Campaign ? tx.Campaign.activityType : "Unknown";
+      completionCounts[type] = (completionCounts[type] || 0) + 1;
+    });
+
+    // User engagement: all users
+    const userEngagement = await User.findAll();
+
+    // Total partners
+    const totalPartner = await Partner.count();
+
+    // User growth in last 30 days
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const userGrowth = await User.aggregate([
-      {
-        $match: {
-          createdAt: { $gte: thirtyDaysAgo },
-        },
+    // Group by day
+    const userGrowthRaw = await User.findAll({
+      attributes: [
+        [fn('DATE', col('createdAt')), 'date'],
+        [fn('COUNT', col('id')), 'count'],
+      ],
+      where: {
+        createdAt: { [Op.gte]: thirtyDaysAgo },
       },
-      {
-        $group: {
-          _id: {
-            $subtract: [
-              30,
-              {
-                $dateDiff: {
-                  startDate: "$createdAt",
-                  endDate: "$$NOW", // Current time at query execution
-                  unit: "day", // Returns whole days (floors the result)
-                },
-              },
-            ],
-          },
-          count: { $sum: 1 }, // Count of users per group (rename from 'i' for clarity)
-        },
-      },
-      {
-        $sort: { _id: -1 }, // Optional: Sort by most recent first (e.g., _id: 30 at top)
-      },
-    ]);
-    // Add more analytics as needed
+      group: [literal('date')],
+      order: [[literal('date'), 'DESC']],
+      raw: true,
+    });
+
+    // Format userGrowth as array of { date, count }
+    const userGrowth = userGrowthRaw.map(row => ({
+      date: row.date,
+      count: parseInt(row.count, 10),
+    }));
 
     res.json({
       activeCampaigns,
-      completions,
+      completions: completionCounts,
       userEngagement,
       totalPartner,
       userGrowth,

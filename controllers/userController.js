@@ -1,13 +1,12 @@
-const User = require("../models/userSchema");
+const { User, Campaign, Transaction } = require("../models");
 const jwt = require("jsonwebtoken");
 const shortid = require("shortid");
 const twilio = require("twilio")(
   process.env.TWILIO_SID,
   process.env.TWILIO_AUTH
 );
-const Campaign = require("../models/campaignSchema");
-const Transaction = require("../models/transactionSchema");
-const { sendAirtime, getSurveyResponse } = require("../services/");
+const { getSurveyResponse } = require("../services/");
+const { Op } = require("sequelize");
 
 const requestOTP = async (req, res) => {
   try {
@@ -15,14 +14,13 @@ const requestOTP = async (req, res) => {
     if (!phone) return res.status(400).json({ msg: "Phone required" });
 
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
-    let user = await User.findOne({ phone });
+    let user = await User.findOne({ where: { phone } });
 
     if (!user) {
-      user = new User({ phone });
-      user.referralCode = shortid.generate();
+      user = await User.create({ phone, referralCode: shortid.generate() });
       if (referralCode) {
-        const referrer = await User.findOne({ referralCode });
-        if (referrer) user.referredBy = referrer._id;
+        const referrer = await User.findOne({ where: { referralCode } });
+        if (referrer) user.referredBy = referrer.id;
       }
     }
     user.otp = otp;
@@ -47,24 +45,24 @@ const requestOTP = async (req, res) => {
 const verifyOTP = async (req, res) => {
   try {
     const { phone, otp } = req.body;
-    const user = await User.findOne({ phone });
+    const user = await User.findOne({ where: { phone } });
     if (!user || user.otp !== otp)
       return res.status(400).json({ msg: "Invalid OTP" });
 
-    user.otp = undefined;
+    user.otp = null;
     await user.save();
 
     if (user.referredBy) {
-      const referrer = await User.findById(user.referredBy);
-      const bonus = 5; // Configurable bonus amount
-      referrer.rewards += bonus;
-      await referrer.save();
-      // Optionally send bonus airtime to referrer
-      // But spec credits directly on completion, so add to rewards only
+      const referrer = await User.findByPk(user.referredBy);
+      const bonus = 5;
+      if (referrer) {
+        referrer.rewards += bonus;
+        await referrer.save();
+      }
     }
 
     const token = jwt.sign(
-      { id: user._id, role: "user" },
+      { id: user.id, role: "user" },
       process.env.JWT_SECRET,
       { expiresIn: "30d" }
     );
@@ -140,9 +138,11 @@ const getCampaigns = async (req, res) => {
 
     const age =
       new Date().getFullYear() - new Date(user.dateOfBirth).getFullYear();
-    const activeCampaigns = await Campaign.find({
-      startDate: { $lte: new Date() },
-      endDate: { $gte: new Date() },
+    const activeCampaigns = await Campaign.findAll({
+      where: {
+        startDate: { [Op.lte]: new Date() },
+        endDate: { [Op.gte]: new Date() },
+      },
     });
 
     const matched = activeCampaigns.filter((c) => {
@@ -176,7 +176,7 @@ const getCampaigns = async (req, res) => {
 
 const getCampaignDetail = async (req, res) => {
   try {
-    const campaign = await Campaign.findById(req.params.id);
+    const campaign = await Campaign.findByPk(req.params.id);
     if (!campaign) return res.status(404).json({ msg: "Campaign not found" });
     res.json(campaign);
   } catch (err) {
@@ -189,7 +189,7 @@ const submitCampaign = async (req, res) => {
   try {
     const { campaignId, watchedDuration, surveyResponseId } = req.body;
     const user = req.user;
-    const campaign = await Campaign.findById(campaignId);
+    const campaign = await Campaign.findByPk(campaignId);
     if (!campaign) return res.status(404).json({ msg: "Campaign not found" });
 
     let verified = true;
@@ -197,13 +197,13 @@ const submitCampaign = async (req, res) => {
 
     if (
       campaign.activityType.includes("video") &&
-      watchedDuration < (campaign.video?.duration * 0.9 || 0)
+      watchedDuration < (campaign.videoDuration * 0.9 || 0)
     ) {
       verified = false;
     }
 
     if (campaign.activityType.includes("survey") && surveyResponseId) {
-      const formId = campaign.surveyLink.split("/").pop(); // Assume last part is formId
+      const formId = campaign.surveyLink.split("/").pop();
       const completed = await getSurveyResponse(
         formId,
         surveyResponseId,
@@ -214,25 +214,24 @@ const submitCampaign = async (req, res) => {
 
     if (!verified) status = "failed";
 
-    const transaction = new Transaction({
+    const transaction = await Transaction.create({
       status,
-      campaign: campaign._id,
-      user: user._id,
+      campaignId: campaign.id,
+      userId: user.id,
     });
-    await transaction.save();
 
     if (status === "completed") {
-      const success = await sendAirtime(user.phone, campaign.rewardAmount);
+      //send Cash reward.
+      const success = true; // Placeholder for actual transfer logic
+      // In real implementation, integrate with payment gateway here
       if (success) {
         user.rewards += campaign.rewardAmount;
+        await user.save();
       } else {
         transaction.status = "pending";
         await transaction.save();
       }
     }
-
-    user.transactions.push(transaction._id);
-    await user.save();
 
     res.json(transaction);
   } catch (err) {
@@ -243,13 +242,12 @@ const submitCampaign = async (req, res) => {
 
 const transferMoney = async (userId, amount) => {
   try {
-    const user = await User.findById(userId);
+    const user = await User.findByPk(userId);
     if (!user || !user.hasBankAccount)
       throw new Error("User not eligible for transfer");
 
     // Integrate with payment gateway to transfer money to user's bank account
-    // This is a placeholder for actual implementation
-    const success = true; // Assume transfer is successful
+    const success = true; // Placeholder
 
     if (success) {
       user.rewards -= amount;

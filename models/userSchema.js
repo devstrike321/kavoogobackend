@@ -1,29 +1,29 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const userSchema = new mongoose.Schema(
-  {
-    phone: { type: String, required: true, unique: true },
-    otp: String,
-    firstName: String,
-    lastName: String,
-    email: String,
-    gender: String,
-    dateOfBirth: Date,
-    country: String,
-    city: String,
-    employmentStatus: { type: String, default: 'employed' },
-    educationLevel: String,
-    maritalStatus: String,
-    hasKids: Boolean,
-    salaryRangeMin: Number,
-    salaryRangeMax: Number,
-    hasBankAccount: Boolean,
-    rewards: { type: Number, default: 0 },
-    transactions: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Transaction' }],
-    referralCode: { type: String, unique: true },
-    referredBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-  },
-  { timestamps: true }
-);
+const User = sequelize.define('User', {
+  phone: { type: DataTypes.STRING, unique: true, allowNull: false },
+  otp: { type: DataTypes.STRING },
+  firstName: { type: DataTypes.STRING },
+  lastName: { type: DataTypes.STRING },
+  email: { type: DataTypes.STRING, unique: true },
+  gender: { type: DataTypes.STRING },
+  dateOfBirth: { type: DataTypes.DATE },
+  country: { type: DataTypes.STRING },
+  city: { type: DataTypes.STRING },
+  employmentStatus: { type: DataTypes.STRING, defaultValue: 'employed' },
+  educationLevel: { type: DataTypes.STRING },
+  maritalStatus: { type: DataTypes.STRING },
+  hasKids: { type: DataTypes.STRING, defaultValue: 'no' },
+  salaryRangeMin: { type: DataTypes.FLOAT },
+  salaryRangeMax: { type: DataTypes.FLOAT },
+  hasBankAccount: { type: DataTypes.BOOLEAN },
+  rewards: { type: DataTypes.INTEGER, defaultValue: 0 },
+  referralCode: { type: DataTypes.STRING, unique: true },
+  referredBy: { type: DataTypes.INTEGER, references: { model: 'Users', key: 'id' } },
+//  transactions: { type: DataTypes.ARRAY(DataTypes.INTEGER), defaultValue: [] },
+}, {
+  timestamps: true,
+});
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = User;

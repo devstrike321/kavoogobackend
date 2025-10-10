@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const path = require('path');
+const { Partner } = require('../models');
 // Additional campaign routes if needed beyond user/partner
 
 // For admin to create campaigns
@@ -40,7 +41,10 @@ const upload1 = multer({
 
 router.get('/:id', protect, dashboardAuth, async (req, res) => {
   console.log(req.params.id);
-  const campaigns = await Campaign.findById(req.params.id);
+  const campaigns = await Campaign.findByPk(
+    req.params.id,
+    { include: [{ model: Partner }] }
+  );
   if (!campaigns) return res.status(404).json({ error: 'Campaign not found' });
   console.log(campaigns);
   res.json(campaigns);

@@ -1,0 +1,751 @@
+openapi: 3.0.0
+info:
+  title: Kavoo GO Backend API
+  version: 1.0.0
+  description: Swagger / OpenAPI spec generated from project routes
+servers:
+  - url: http://localhost:5000
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  schemas:
+    User:
+      type: object
+      properties:
+        id: { type: integer }
+        phone: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        email: { type: string }
+        gender: { type: string }
+        dateOfBirth: { type: string, format: date }
+        country: { type: string }
+        city: { type: string }
+        employmentStatus: { type: string }
+        educationLevel: { type: string }
+        maritalStatus: { type: string }
+        hasKids: { type: boolean }
+        salaryRangeMin: { type: number }
+        salaryRangeMax: { type: number }
+        hasBankAccount: { type: boolean }
+        rewards: { type: number }
+        referralCode: { type: string }
+    Partner:
+      type: object
+      properties:
+        id: { type: integer }
+        partnerName: { type: string }
+        email: { type: string }
+        phone: { type: string }
+        status: { type: string }
+        industry: { type: string }
+        contactPerson: { type: string }
+        country: { type: string }
+    AdminUser:
+      type: object
+      properties:
+        id: { type: integer }
+        email: { type: string }
+        firstName: { type: string }
+        lastName: { type: string }
+        role: { type: string }
+        title: { type: string }
+    Campaign:
+      type: object
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        description: { type: string }
+        activityType: { type: string }
+        startDate: { type: string, format: date-time }
+        endDate: { type: string, format: date-time }
+        minAge: { type: integer }
+        maxAge: { type: integer }
+        country: { type: string }
+        city: { type: string }
+        employmentStatus: { type: string }
+        educationLevel: { type: string }
+        minSalary: { type: number }
+        maxSalary: { type: number }
+        maritalStatus: { type: string }
+        hasKids: { type: boolean }
+        rewardAmount: { type: number }
+        totalBudget: { type: number }
+        costPerUser: { type: number }
+        maxUsers: { type: integer }
+        videoUrl: { type: string }
+        surveyLink: { type: string }
+        partnerId: { type: integer }
+        status: { type: string }
+    Transaction:
+      type: object
+      properties:
+        id: { type: integer }
+        transactionId: { type: string }
+        date: { type: string, format: date-time }
+        status: { type: string }
+        campaignId: { type: integer }
+        userId: { type: integer }
+    MobileProvider:
+      type: object
+      properties:
+        id: { type: integer }
+        balance: { type: number }
+
+tags:
+  - name: User
+  - name: Partner
+  - name: Admin
+  - name: Campaign
+  - name: Transaction
+  - name: Analytics
+
+paths:
+  /api/users/otp:
+    post:
+      tags: [User]
+      summary: Request OTP
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone]
+              properties:
+                phone: { type: string }
+                referralCode: { type: string }
+      responses:
+        '200': { description: OTP sent }
+
+  /api/users/verify:
+    post:
+      tags: [User]
+      summary: Verify OTP (returns JWT token)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [phone, otp]
+              properties:
+                phone: { type: string }
+                otp: { type: string }
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+
+  /api/users/onboard:
+    patch:
+      tags: [User]
+      summary: Complete onboarding (protected - user)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                dateOfBirth: { type: string, format: date }
+                country: { type: string }
+                city: { type: string }
+      responses:
+        '200':
+          description: Onboarded user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /api/users:
+    patch:
+      tags: [User]
+      summary: Edit authenticated user's profile (protected - user)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string }
+                gender: { type: string }
+                dateOfBirth: { type: string, format: date }
+                country: { type: string }
+                city: { type: string }
+                employmentStatus: { type: string }
+                educationLevel: { type: string }
+                maritalStatus: { type: string }
+                hasKids: { type: boolean }
+                salaryRangeMin: { type: number }
+                salaryRangeMax: { type: number }
+                hasBankAccount: { type: boolean }
+      responses:
+        '200':
+          description: Updated profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /api/users/me:
+    get:
+      tags: [User]
+      summary: Get authenticated user's profile (protected - user)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: User profile
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/User' }
+
+  /api/users/campaigns:
+    get:
+      tags: [User, Campaign]
+      summary: Get campaigns matched to authenticated user (protected - user)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: List of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Campaign' }
+
+  /api/users/campaigns/{id}:
+    get:
+      tags: [User, Campaign]
+      summary: Get campaign detail (protected - user)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Campaign detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Campaign' }
+
+  /api/users/submit:
+    post:
+      tags: [User, Transaction]
+      summary: Submit campaign participation (protected - user)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [campaignId]
+              properties:
+                campaignId: { type: integer }
+                watchedDuration: { type: number }
+                surveyResponseId: { type: string }
+      responses:
+        '200':
+          description: Transaction created
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+
+  /api/users/transfer:
+    post:
+      tags: [User]
+      summary: Request transfer (protected - user)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                amount: { type: number }
+      responses:
+        '200': { description: Transfer requested }
+
+  /api/partners/me:
+    patch:
+      tags: [Partner]
+      summary: Edit logged-in partner details (protected - partner)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                partnerName: { type: string }
+                phone: { type: string }
+                status: { type: string }
+                industry: { type: string }
+                contactPerson: { type: string }
+                email: { type: string }
+                country: { type: string }
+      responses:
+        '200':
+          description: Updated partner
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partner' }
+
+  /api/partners/campaigns:
+    get:
+      tags: [Partner, Campaign]
+      summary: List campaigns for authenticated partner (protected - partner)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Campaign' }
+
+  /api/partners/{id}:
+    get:
+      tags: [Partner]
+      summary: Get partner detail (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Partner detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partner' }
+
+  /api/campaigns/{id}:
+    get:
+      tags: [Campaign]
+      summary: Get campaign by id (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Campaign
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Campaign' }
+
+  /api/campaigns:
+    post:
+      tags: [Campaign]
+      summary: Create campaign (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                name: { type: string }
+                description: { type: string }
+                activityType: { type: string }
+                startDate: { type: string, format: date-time }
+                endDate: { type: string, format: date-time }
+                minAge: { type: integer }
+                maxAge: { type: integer }
+                country: { type: string }
+                city: { type: string }
+                rewardAmount: { type: number }
+                surveyLink: { type: string }
+                video: { type: string, format: binary }
+      responses:
+        '200':
+          description: Created campaign
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Campaign' }
+
+  /api/admins/login:
+    post:
+      tags: [Admin]
+      summary: Admin/team login (public)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string }
+                password: { type: string }
+      responses:
+        '200':
+          description: Login OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token: { type: string }
+
+  /api/admins/team:
+    get:
+      tags: [Admin]
+      summary: List team members (protected - admin)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of admin users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/AdminUser' }
+    post:
+      tags: [Admin]
+      summary: Add team member (protected - admin)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, temporaryPassword]
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string }
+                phone: { type: string }
+                title: { type: string }
+                country: { type: string }
+                city: { type: string }
+                temporaryPassword: { type: string }
+      responses:
+        '200':
+          description: Created admin user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUser' }
+
+  /api/admins/team/{id}:
+    get:
+      tags: [Admin]
+      summary: Get team member by id (protected - admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Admin user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUser' }
+    patch:
+      tags: [Admin]
+      summary: Edit team member (protected - admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName: { type: string }
+                lastName: { type: string }
+                email: { type: string }
+                phone: { type: string }
+                title: { type: string }
+                country: { type: string }
+                city: { type: string }
+                status: { type: string }
+      responses:
+        '200':
+          description: Updated admin user
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/AdminUser' }
+
+  /api/admins/partners:
+    get:
+      tags: [Admin, Partner]
+      summary: List partners (protected - team)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of partners
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Partner' }
+
+  /api/admins/partners/{id}:
+    get:
+      tags: [Admin, Partner]
+      summary: Get partner by id (protected - team)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Partner detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partner' }
+    patch:
+      tags: [Admin, Partner]
+      summary: Edit partner (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                partnerName: { type: string }
+                phone: { type: string }
+                status: { type: string }
+                industry: { type: string }
+                country: { type: string }
+                contactPerson: { type: string }
+                email: { type: string }
+      responses:
+        '200':
+          description: Updated partner
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Partner' }
+
+  /api/admins/users:
+    get:
+      tags: [Admin, User]
+      summary: List all users (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of users
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/User' }
+
+  /api/admins/users/{id}:
+    get:
+      tags: [Admin, User]
+      summary: Get user by id including transactions (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: User with transactions
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:
+                  - $ref: '#/components/schemas/User'
+                  - type: object
+                    properties:
+                      Transactions:
+                        type: array
+                        items: { $ref: '#/components/schemas/Transaction' }
+
+  /api/admins/campaigns:
+    get:
+      tags: [Admin, Campaign]
+      summary: List all campaigns (protected - team)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of campaigns
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Campaign' }
+
+  /api/admins/providers:
+    post:
+      tags: [Admin]
+      summary: Add mobile provider balance (protected - admin)
+      security: [{ BearerAuth: [] }]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                balance: { type: number }
+      responses:
+        '200':
+          description: Provider created/updated
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MobileProvider' }
+    get:
+      tags: [Admin]
+      summary: List mobile providers (protected - admin)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Array of providers
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/MobileProvider' }
+
+  /api/admins/providers/{id}:
+    patch:
+      tags: [Admin]
+      summary: Edit mobile provider balance (protected - admin)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                balance: { type: number }
+      responses:
+        '200':
+          description: Updated provider
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MobileProvider' }
+
+  /api/transactions:
+    get:
+      tags: [Transaction]
+      summary: List transactions (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - in: query
+          name: userId
+          schema: { type: integer }
+        - in: query
+          name: partnerId
+          schema: { type: integer }
+        - in: query
+          name: campaignId
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Array of transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: '#/components/schemas/Transaction' }
+
+  /api/transactions/export:
+    get:
+      tags: [Transaction]
+      summary: Export transactions as CSV (protected - team)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: CSV file
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+
+  /api/transactions/{id}:
+    get:
+      tags: [Transaction]
+      summary: Get transaction by id (protected - dashboard)
+      security: [{ BearerAuth: [] }]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Transaction detail
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Transaction' }
+
+  /api/analytics:
+    get:
+      tags: [Analytics]
+      summary: Dashboard analytics (protected - partner or admin)
+      security: [{ BearerAuth: [] }]
+      responses:
+        '200':
+          description: Analytics payload
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers: { type: integer }
+                  totalCampaigns: { type: integer }
+                  totalTransactions: { type: integer }
+                  byPartner:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        partnerId: { type: integer }
+                        count: { type: integer }

@@ -1,23 +1,34 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 const shortid = require('shortid');
 
-const transactionSchema = new mongoose.Schema(
-  {
-    transactionId: { type: String, unique: true },
-    date: { type: Date, default: Date.now },
-    status: { type: String, enum: ['completed', 'pending', 'failed'] },
-    campaign: { type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' },
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+const Transaction = sequelize.define('Transaction', {
+  transactionId: {
+    type: DataTypes.STRING,
+    unique: true,
+    allowNull: false,
+    defaultValue: () => `TXN-${new Date().toISOString().slice(0, 10)}-${shortid.generate()}`,
   },
-  { timestamps: true }
-);
-
-transactionSchema.pre('save', function (next) {
-  if (!this.transactionId) {
-    const dateStr = new Date().toISOString().slice(0, 10);
-    this.transactionId = `TXN-${dateStr}-${shortid.generate()}`;
-  }
-  next();
+  date: {
+    type: DataTypes.DATE,
+    defaultValue: DataTypes.NOW,
+  },
+  status: {
+    type: DataTypes.ENUM('completed', 'pending', 'failed'),
+    allowNull: false,
+  },
+  campaignId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  userId: {
+    type: DataTypes.INTEGER,
+    allowNull: false,
+  },
+  // Foreign keys can be added later for User and Campaign
+  // Add other fields as needed
+}, {
+  timestamps: true,
 });
 
-module.exports = mongoose.model('Transaction', transactionSchema);
+module.exports = Transaction;

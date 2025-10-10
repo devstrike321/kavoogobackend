@@ -1,32 +1,34 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const campaignSchema = new mongoose.Schema(
-  {
-    name: String,
-    description: String,
-    partner: { type: mongoose.Schema.Types.ObjectId, ref: 'Partner' },
-    activityType: { type: String, enum: ['Video', 'Video_survey', 'Survey'] },
-    startDate: Date,
-    status: { type: String, enum: ['Active', 'InActive'], default: 'Active' },
-    endDate: Date,
-    minAge: Number,
-    maxAge: Number,
-    country: String,
-    city: String,
-    employmentStatus: String,
-    educationLevel: String,
-    minSalary: Number,
-    maxSalary: Number,
-    maritalStatus: String,
-    hasKids: String,
-    rewardAmount: Number,
-    totalBudget: Number,
-    costPerUser: Number,
-    maxUsers: Number,
-    video: { url: String, duration: Number },
-    surveyLink: String,
-  },
-  { timestamps: true }
-);
+const Campaign = sequelize.define('Campaign', {
+  name: { type: DataTypes.STRING, allowNull: false },
+  description: { type: DataTypes.TEXT },
+  partnerId: { type: DataTypes.INTEGER, allowNull: false },
+  activityType: { type: DataTypes.ENUM('Video', 'Video_survey', 'Survey'), allowNull: false },
+  startDate: { type: DataTypes.DATE, allowNull: false },
+  status: { type: DataTypes.ENUM('Active', 'InActive'), defaultValue: 'Active' },
+  endDate: { type: DataTypes.DATE },
+  minAge: { type: DataTypes.INTEGER },
+  maxAge: { type: DataTypes.INTEGER },
+  country: { type: DataTypes.STRING },
+  city: { type: DataTypes.STRING },
+  employmentStatus: { type: DataTypes.STRING },
+  educationLevel: { type: DataTypes.STRING },
+  minSalary: { type: DataTypes.INTEGER },
+  maxSalary: { type: DataTypes.INTEGER },
+  maritalStatus: { type: DataTypes.STRING },
+  hasKids: { type: DataTypes.BOOLEAN },
+  rewardAmount: { type: DataTypes.FLOAT, allowNull: false },
+  totalBudget: { type: DataTypes.FLOAT },
+  costPerUser: { type: DataTypes.FLOAT },
+  maxUsers: { type: DataTypes.INTEGER },
+  videoUrl: { type: DataTypes.STRING },
+  videoDuration: { type: DataTypes.INTEGER }, // in seconds
+  surveyLink: { type: DataTypes.STRING },
+  // Add other fields as needed
+}, {
+  timestamps: true,
+});
 
-module.exports = mongoose.model('Campaign', campaignSchema);
+module.exports = Campaign;

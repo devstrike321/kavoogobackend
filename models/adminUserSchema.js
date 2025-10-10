@@ -1,19 +1,20 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const adminUserSchema = new mongoose.Schema(
-  {
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    title: String,
-    role: { type: String, enum: ['admin', 'team'], default: 'team' },
-    phone: String,
-    status: { type: String, default: 'active' },
-    firstName: String,
-    lastName: String,
-    country: String,
-    city: String,
-  },
-  { timestamps: true }
-);
+const AdminUser = sequelize.define('AdminUser', {
+  email: { type: DataTypes.STRING, allowNull: false, unique: true },
+  password: { type: DataTypes.STRING, allowNull: false },
+  title: { type: DataTypes.STRING },
+  role: { type: DataTypes.ENUM('admin', 'team'), defaultValue: 'team' },
+  phone: { type: DataTypes.STRING },
+  status: { type: DataTypes.STRING, defaultValue: 'active' },
+  firstName: { type: DataTypes.STRING },
+  lastName: { type: DataTypes.STRING },
+  country: { type: DataTypes.STRING },
+  city: { type: DataTypes.STRING },
+  // Add other fields as needed
+}, {
+  timestamps: true,
+});
 
-module.exports = mongoose.model('AdminUser', adminUserSchema);
+module.exports = AdminUser;

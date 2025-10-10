@@ -4,6 +4,7 @@ const {
   login,
   getTeamMembers,
   addTeamMember,
+  getTeamMember,
   editTeamMember,
   getPartners,
   getPartner,
@@ -21,6 +22,7 @@ router.post('/login', login);
 router.get('/team', protect, adminAuth, getTeamMembers);
 router.post('/team', protect, adminAuth, addTeamMember);
 router.patch('/team/:id', protect, adminAuth, editTeamMember);
+router.get('/team/:id', protect, adminAuth, getTeamMember);
 router.get('/partners', protect, teamAuth, getPartners);
 router.get('/partners/:id', protect, teamAuth, getPartner);
 router.patch('/partners/:id', protect, dashboardAuth, editPartner);

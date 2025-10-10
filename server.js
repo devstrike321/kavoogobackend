@@ -1,12 +1,16 @@
 const express = require('express');
 const dotenv = require('dotenv');
-const connectDB = require('./config/db');
 const AWS = require('aws-sdk');
 const cors = require('cors');
 const path = require('path');
+const sequelize = require('./config/db');
+const swaggerUi = require('swagger-ui-express');
+const YAML = require('yamljs');
+const swaggerDocument = YAML.load('./swagger.yaml');
+
 
 dotenv.config();
-connectDB();
+sequelize.sync(); // or sequelize.sync({ force: true }) for development
 
 const app = express();
 app.use(express.json());
@@ -16,6 +20,8 @@ app.use(cors({
 	methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
 	allowedHeaders: ['Content-Type', 'Authorization'],
 }));
+
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.use(express.static(path.join(__dirname, 'public')));
 

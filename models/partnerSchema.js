@@ -1,18 +1,20 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const partnerSchema = new mongoose.Schema(
-  {
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-    partnerName: String,
-    phone: String,
-    status: { type: String, default: 'active' },
-    industry: String,
-    contactPerson: String,
-    country: String,
-    campaigns: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Campaign' }],
-  },
-  { timestamps: true }
-);
+const Partner = sequelize.define('Partner', {
+  email: { type: DataTypes.STRING, allowNull: false, unique: true },
+  password: { type: DataTypes.STRING, allowNull: false },
+  partnerName: { type: DataTypes.STRING },
+  phone: { type: DataTypes.STRING },
+  status: { type: DataTypes.STRING, defaultValue: 'active' },
+  industry: { type: DataTypes.STRING },
+  contactPerson: { type: DataTypes.STRING },
+  country: { type: DataTypes.STRING },
+  // campaigns field can be managed via associations in Sequelize
+//  campaigns: { type: DataTypes.ARRAY(DataTypes.INTEGER), defaultValue: [] },
+  // Add other fields as needed
+}, {
+  timestamps: true,
+});
 
-module.exports = mongoose.model('Partner', partnerSchema);
+module.exports = Partner;

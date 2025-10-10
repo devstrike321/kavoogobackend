@@ -15,25 +15,4 @@ const getSurveyResponse = async (formId, responseId, apiKey) => {
   }
 };
 
-// Placeholder for sending airtime
-const sendAirtime = async (phone, amount) => {
-  if (provider.balance < amount) {
-    console.error('Insufficient balance in provider account');
-    return false;
-  }
-
-
-  // Implement real API calls here for Orange, MTN, Moov
-  // For example, using axios to provider's API endpoint
-  
-
-  // Deduct the amount from provider balance
-  provider.balance -= amount;
-  await provider.save();
-  console.log(`Sending ${amount} airtime to ${phone}`);
-
-  // Assume success for now
-  return true;
-};
-
-module.exports = { getSurveyResponse, sendAirtime};
+module.exports = { getSurveyResponse};

@@ -1,7 +1,6 @@
-const Partner = require("../models/partnerSchema");
+const { Partner, Campaign } = require("../models");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const Campaign = require("../models/campaignSchema");
 
 const editDetails = async (req, res) => {
   try {
@@ -29,9 +28,9 @@ const editDetails = async (req, res) => {
 
 const getDetail = async (req, res) => {
   try {
-    const partner = await Partner.findById(req.params.id)
-      .select("-password")
-      .populate("campaigns");
+    const partner = await Partner.findByPk(req.params.id, {
+      include: { model: Campaign }
+    });
     res.json(partner);
   } catch (err) {
     console.error(err);
@@ -41,7 +40,6 @@ const getDetail = async (req, res) => {
 
 const createCampaign = async (req, res) => {
   try {
-    console.log(req.file);
     const {
       name,
       description,
@@ -66,9 +64,7 @@ const createCampaign = async (req, res) => {
       surveyLink,
     } = req.body;
 
-    console.log(hasKids);
-
-    const campaign = new Campaign({
+    const campaignData = {
       name,
       description,
       activityType,
@@ -89,27 +85,19 @@ const createCampaign = async (req, res) => {
       costPerUser,
       maxUsers,
       surveyLink,
-      partner,
-    });
+      partnerId: partner,
+      status: endDate < new Date() ? "InActive" : "Active",
+    };
 
     if (req.file) {
-      campaign.video = { url: req.file.path };
-      console.log(campaign.video);
+      campaignData.videoUrl = req.file.path;
     }
 
-    const curPartner = await Partner.findById(partner);
+    const curPartner = await Partner.findByPk(partner);
     if (!curPartner)
       return res.status(404).json({ error: "Partner not found" });
 
-    if(endDate < new Date()) {
-      campaign.status = "InActive";
-    }
-
-    await campaign.save();
-
-    console.log(campaign);
-    curPartner.campaigns.push(campaign._id);
-    await curPartner.save();
+    const campaign = await Campaign.create(campaignData);
     res.json(campaign);
   } catch (err) {
     console.error(err);
@@ -119,13 +107,13 @@ const createCampaign = async (req, res) => {
 
 const getCampaigns = async (req, res) => {
   try {
-    const campaigns = await Campaign.find({ partner: req.user._id });
-    campaigns.map((camp) => {
-      if(camp.endDate < new Date()) {
+    const campaigns = await Campaign.findAll({ where: { partnerId: req.user.id } });
+    for (const camp of campaigns) {
+      if (camp.endDate < new Date()) {
         camp.status = "InActive";
+        await camp.save();
       }
-      camp.save();
-    });
+    }
     res.json(campaigns);
   } catch (err) {
     console.error(err);
@@ -133,4 +121,4 @@ const getCampaigns = async (req, res) => {
   }
 };
 
-module.exports = { editDetails, createCampaign, getCampaigns, getDetail };
+module.exports = { editDetails, getDetail, createCampaign, getCampaigns };

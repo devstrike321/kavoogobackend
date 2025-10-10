@@ -1,42 +1,48 @@
-const AdminUser = require("../models/adminUserSchema");
-const Partner = require("../models/partnerSchema");
-const User = require("../models/userSchema");
-const Campaign = require("../models/campaignSchema");
-const MobileProvider = require("../models/mobileProviderSchema");
-const bcrypt = require("bcryptjs");
+const {
+  AdminUser,
+  Partner,
+  User,
+  Campaign,
+  MobileProvider,
+  Transaction,
+} = require("../models");
+const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+const { Op } = require("sequelize");
 
+// Admin/Partner login
 const login = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const adminUser = await AdminUser.findOne({ email });
-    if (!adminUser || !(await bcrypt.compare(password, adminUser.password))) {
-      const partner = await Partner.findOne({ email });
-      if (!partner || !(await bcrypt.compare(password, partner.password))) {
-        return res.status(400).json({ msg: "Invalid credentials" });
-      }
+    let adminUser = await AdminUser.findOne({ where: { email } });
+    if (adminUser && (await bcrypt.compare(password, adminUser.password))) {
       const token = jwt.sign(
-        { id: partner._id, role: "partner" },
+        { id: adminUser.id, role: "adminUser" },
         process.env.JWT_SECRET,
         { expiresIn: "30d" }
       );
       return res.json({ token });
     }
-    const token = jwt.sign(
-      { id: adminUser._id, role: "adminUser" },
-      process.env.JWT_SECRET,
-      { expiresIn: "30d" }
-    );
-    res.json({ token });
+    let partner = await Partner.findOne({ where: { email } });
+    if (partner && (await bcrypt.compare(password, partner.password))) {
+      const token = jwt.sign(
+        { id: partner.id, role: "partner" },
+        process.env.JWT_SECRET,
+        { expiresIn: "30d" }
+      );
+      return res.json({ token });
+    }
+    return res.status(400).json({ msg: "Invalid credentials" });
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
+// Get all team members
 const getTeamMembers = async (req, res) => {
   try {
-    const teamMembers = await AdminUser.find({});
+    const teamMembers = await AdminUser.findAll();
     res.json(teamMembers);
   } catch (err) {
     console.error(err);
@@ -44,6 +50,7 @@ const getTeamMembers = async (req, res) => {
   }
 };
 
+// Add a team member
 const addTeamMember = async (req, res) => {
   try {
     const {
@@ -56,13 +63,12 @@ const addTeamMember = async (req, res) => {
       city,
       temporaryPassword,
     } = req.body;
-    const existing = await AdminUser.findOne({ email });
+    const existing = await AdminUser.findOne({ where: { email } });
     if (existing) return res.status(400).json({ msg: "User exists" });
 
-    const salt = await bcrypt.genSalt(10);
-    const password = await bcrypt.hash(temporaryPassword, salt);
+    const password = await bcrypt.hash(temporaryPassword, 10);
 
-    const teamMember = new AdminUser({
+    const teamMember = await AdminUser.create({
       firstName,
       lastName,
       email,
@@ -73,7 +79,6 @@ const addTeamMember = async (req, res) => {
       password,
       role: "team",
     });
-    await teamMember.save();
     res.json(teamMember);
   } catch (err) {
     console.error(err);
@@ -81,10 +86,10 @@ const addTeamMember = async (req, res) => {
   }
 };
 
+// Edit a team member
 const editTeamMember = async (req, res) => {
   try {
-    const { id } = req.params;
-    const updates = Object.keys(req.body);
+    const id  = req.params.id;
     const allowed = [
       "firstName",
       "lastName",
@@ -95,11 +100,12 @@ const editTeamMember = async (req, res) => {
       "city",
       "status",
     ];
-    const teamMember = await AdminUser.findById(id);
+    const teamMember = await AdminUser.findByPk(id);
     if (!teamMember || teamMember.role === "admin")
       return res.status(403).json({ msg: "Cannot edit" });
-    updates.forEach((update) => {
-      if (allowed.includes(update)) teamMember[update] = req.body[update];
+
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) teamMember[field] = req.body[field];
     });
     await teamMember.save();
     res.json(teamMember);
@@ -109,11 +115,26 @@ const editTeamMember = async (req, res) => {
   }
 };
 
+const getTeamMember = async (req, res) => {
+  try {
+    const teamMember = await AdminUser.findByPk(req.params.id);
+    if (!teamMember) return res.status(404).json({ msg: "Not found" });
+    res.json(teamMember);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
+// Get all partners with campaigns
 const getPartners = async (req, res) => {
   try {
-    const partners = await Partner.find({}).populate({
-      path: "campaigns",
-      options: { sort: { updatedAt: -1 } },
+    const partners = await Partner.findAll({
+      include: {
+        model: Campaign,
+        as: "Campaigns",
+        order: [["updatedAt", "DESC"]],
+      },
     });
     res.json(partners);
   } catch (err) {
@@ -122,10 +143,10 @@ const getPartners = async (req, res) => {
   }
 };
 
+// Edit a partner
 const editPartner = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = Object.keys(req.body);
     const allowed = [
       "partnerName",
       "phone",
@@ -135,16 +156,12 @@ const editPartner = async (req, res) => {
       "contactPerson",
       "email",
     ];
-
-    console.log(updates);
-
-    const partner = await Partner.findById(id);
+    const partner = await Partner.findByPk(id);
     if (!partner) return res.status(404).json({ msg: "Partner not found" });
-    updates.forEach((update) => {
-      if (allowed.includes(update)) partner[update] = req.body[update];
-    });
 
-    console.log(partner);
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) partner[field] = req.body[field];
+    });
     await partner.save();
     res.json(partner);
   } catch (err) {
@@ -153,9 +170,10 @@ const editPartner = async (req, res) => {
   }
 };
 
+// Get a single partner
 const getPartner = async (req, res) => {
   try {
-    const partner = await Partner.findById(req.params.id);
+    const partner = await Partner.findByPk(req.params.id);
     res.json(partner);
   } catch (err) {
     console.error(err);
@@ -163,18 +181,18 @@ const getPartner = async (req, res) => {
   }
 };
 
+// Get all users with transactions and campaigns
 const getUsers = async (req, res) => {
   try {
-    const users = await User.find({})
-      .populate({
-        path: "transactions",
-        populate: {
-          path: "campaign",
-          model: "Campaign", // Ensures latest campaign by most recent update
+    const users = await User.findAll({
+      include: {
+        model: Transaction,
+        include: {
+          model: Campaign,
         },
-        options: { sort: { updatedAt: -1 } },
-      })
-      .lean();
+        order: [["updatedAt", "DESC"]],
+      },
+    });
     res.json(users);
   } catch (err) {
     console.error(err);
@@ -182,11 +200,12 @@ const getUsers = async (req, res) => {
   }
 };
 
+// Get a single user
 const getUser = async (req, res) => {
   try {
-    const user = await User.findById(req.params.id);
-    console.log(user);
-    console.log(req.params.id);
+    const user = await User.findByPk(req.params.id, {
+      include: [{ model: Transaction , include: [{ model: Campaign, include:[{ model: Partner}] }] }],
+    });
     res.json(user);
   } catch (err) {
     console.error(err);
@@ -194,41 +213,39 @@ const getUser = async (req, res) => {
   }
 };
 
+// Get all campaigns and update status if ended
 const getCampaigns = async (req, res) => {
   try {
-    const updateCampaigns = await Campaign.find({});
-    updateCampaigns.map((camp) => {
-      if(camp.endDate < new Date()) {
+    const campaigns = await Campaign.findAll({include:[{ model: Partner }]});
+    for (const camp of campaigns) {
+      if (camp.endDate && camp.endDate < new Date()) {
         camp.status = "InActive";
+        await camp.save();
       }
-      camp.save();
-    });
-    const pipeline = [
-      {
-        $lookup: {
-          from: "partners", // Collection name (lowercase, plural as per Mongoose default)
-          localField: "partner",
-          foreignField: "_id",
-          as: "partner",
-        },
+    }
+    const campaignsWithPartner = await Campaign.findAll({
+      include: {
+        model: Partner,
       },
-    ];
-    const campaigns = await Campaign.aggregate([pipeline]);
-    res.json(campaigns);
+    });
+    res.json(campaignsWithPartner);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
 };
 
+// Add mobile provider balance
 const addMobileProvider = async (req, res) => {
   try {
-    console.log(req.body);
     const { balance } = req.body;
-    let provider = await MobileProvider.findOne({});
-    if (!provider) provider = new MobileProvider({ balance });
-    else provider.balance += Number(balance);
-    await provider.save();
+    let provider = await MobileProvider.findOne();
+    if (!provider) {
+      provider = await MobileProvider.create({ balance });
+    } else {
+      provider.balance += Number(balance);
+      await provider.save();
+    }
     res.json(provider);
   } catch (err) {
     console.error(err);
@@ -236,16 +253,13 @@ const addMobileProvider = async (req, res) => {
   }
 };
 
+// Edit mobile provider balance
 const editMobileProvider = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = Object.keys(req.body);
-    const allowed = ["balance"];
-    const provider = await MobileProvider.findById(id);
+    const provider = await MobileProvider.findByPk(id);
     if (!provider) return res.status(404).json({ msg: "Provider not found" });
-    updates.forEach((update) => {
-      if (allowed.includes(update)) provider[update] = req.body[update];
-    });
+    if (req.body.balance !== undefined) provider.balance = req.body.balance;
     await provider.save();
     res.json(provider);
   } catch (err) {
@@ -254,9 +268,10 @@ const editMobileProvider = async (req, res) => {
   }
 };
 
+// Get all mobile providers
 const getMobileProviders = async (req, res) => {
   try {
-    const providers = await MobileProvider.find({});
+    const providers = await MobileProvider.findAll();
     res.json(providers);
   } catch (err) {
     console.error(err);
@@ -268,6 +283,7 @@ module.exports = {
   login,
   getTeamMembers,
   addTeamMember,
+  getTeamMember,
   editTeamMember,
   getPartners,
   editPartner,

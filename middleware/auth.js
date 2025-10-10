@@ -1,8 +1,7 @@
 const jwt = require('jsonwebtoken');
-const User = require('../models/userSchema');
-const Partner = require('../models/partnerSchema');
-const AdminUser = require('../models/adminUserSchema');
+const { User, Partner, AdminUser } = require('../models');
 
+// Middleware to authenticate using JWT token
 const protect = async (req, res, next) => {
   let token;
   if (req.headers.authorization && req.headers.authorization.startsWith('Bearer')) {
@@ -14,16 +13,18 @@ const protect = async (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.role = decoded.role;
+    let user;
     if (decoded.role === 'user') {
-      req.user = await User.findById(decoded.id).select('-otp');
+      user = await User.findByPk(decoded.id);
     } else if (decoded.role === 'partner') {
-      req.user = await Partner.findById(decoded.id).select('-password');
+      user = await Partner.findByPk(decoded.id);
     } else if (decoded.role === 'adminUser') {
-      req.user = await AdminUser.findById(decoded.id).select('-password');
+      user = await AdminUser.findByPk(decoded.id);
     }
-    if (!req.user) {
+    if (!user) {
       return res.status(401).json({ msg: 'User not found' });
     }
+    req.user = user;
     next();
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });
@@ -53,6 +54,6 @@ const teamAuth = (req, res, next) => {
 const dashboardAuth = (req, res, next) => {
   if (req.role === 'partner' || req.role === 'adminUser') next();
   else res.status(403).json({ msg: 'Not authorized for dashboard' });
-}
+};
 
-module.exports = { protect, userAuth, partnerAuth, adminAuth, teamAuth, dashboardAuth };
+module.exports = { protect, userAuth, partnerAuth, adminAuth, teamAuth, dashboardAuth };  

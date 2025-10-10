@@ -1,13 +1,10 @@
-const mongoose = require('mongoose');
 
-const connectDB = async () => {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log('MongoDB connected');
-  } catch (err) {
-    console.error(err.message);
-    process.exit(1);
-  }
-};
+require('dotenv').config();
+const { Sequelize } = require('sequelize');
 
-module.exports = connectDB;
+const sequelize = new Sequelize(process.env.POSTGRES_URI, {
+  dialect: 'postgres',
+  logging: false, // Set to true for SQL query logging
+});
+
+module.exports = sequelize;

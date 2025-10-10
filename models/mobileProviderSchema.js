@@ -1,10 +1,11 @@
-const mongoose = require('mongoose');
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/db');
 
-const mobileProviderSchema = new mongoose.Schema({
-  balance: {
-    type: Number,
-    required: true
-  }
+const MobileProvider = sequelize.define('MobileProvider', {
+  balance: { type: DataTypes.INTEGER, defaultValue: 0 },
+  // Add other fields as needed
+}, {
+  timestamps: true,
 });
 
-module.exports = mongoose.model('MobileProvider', mobileProviderSchema);
+module.exports = MobileProvider;
