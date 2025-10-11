@@ -23,6 +23,7 @@ const sequelize = new Sequelize(connectionString, {
       rejectUnauthorized: false, // Accept DigitalOcean self-signed cert
     },
   },
+  ssl: true,
 });
 
 module.exports = sequelize;
