@@ -1,5 +1,7 @@
+// ...existing code...
 const express = require('express');
 const dotenv = require('dotenv');
+dotenv.config(); // <- moved up so env vars exist before requiring ./config/db
 const AWS = require('aws-sdk');
 const cors = require('cors');
 const path = require('path');
@@ -7,6 +9,7 @@ const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 const sequelize = require('./config/db');
+
 
 (async () => {
   try {
