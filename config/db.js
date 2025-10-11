@@ -1,4 +1,10 @@
 // db.js
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Load environment variables from .env file in non-production environments only 
+
+
 if (process.env.NODE_ENV !== 'production') {
   require('dotenv').config(); // only loads .env locally
 }
