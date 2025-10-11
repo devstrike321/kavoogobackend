@@ -3,11 +3,19 @@ const dotenv = require('dotenv');
 const AWS = require('aws-sdk');
 const cors = require('cors');
 const path = require('path');
-const sequelize = require('./config/db');
 const swaggerUi = require('swagger-ui-express');
 const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
+const sequelize = require('./config/db');
 
+(async () => {
+  try {
+    await sequelize.authenticate();
+    console.log('✅ Database connected successfully.');
+  } catch (error) {
+    console.error('❌ Database connection failed:', error);
+  }
+})();
 
 dotenv.config();
 sequelize.sync(); // or sequelize.sync({ force: true }) for development

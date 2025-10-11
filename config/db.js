@@ -1,10 +1,21 @@
+// db.js
+if (process.env.NODE_ENV !== 'production') {
+  require('dotenv').config(); // only loads .env locally
+}
 
-require('dotenv').config();
 const { Sequelize } = require('sequelize');
 
-const sequelize = new Sequelize(process.env.POSTGRES_URI, {
+const connectionString = process.env.DATABASE_URL || process.env.POSTGRES_URI;
+
+const sequelize = new Sequelize(connectionString, {
   dialect: 'postgres',
-  logging: false, // Set to true for SQL query logging
+  protocol: 'postgres',
+  logging: false,
+  dialectOptions: {
+    ssl: process.env.NODE_ENV === 'production'
+      ? { require: true, rejectUnauthorized: false }
+      : false,
+  },
 });
 
 module.exports = sequelize;
