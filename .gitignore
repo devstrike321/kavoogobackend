@@ -3,6 +3,7 @@ node_modules/
 
 # Ignore environment variables
 .env
+routes_dump.txt
 
 # Ignore build output
 dist/
