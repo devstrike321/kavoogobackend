@@ -23,6 +23,9 @@ process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
   }
 })();
 
+
+app.use('/docs', express.static(path.join(__dirname, 'swagger.yaml')));
+
 dotenv.config();
 sequelize.sync(); // or sequelize.sync({ force: true }) for development
 
