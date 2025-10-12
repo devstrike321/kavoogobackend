@@ -181,6 +181,9 @@ const getPartner = async (req, res) => {
   }
 };
 
+// Edit a Single user
+
+
 // Get all users with transactions and campaigns
 const getUsers = async (req, res) => {
   try {
@@ -213,10 +216,49 @@ const getUser = async (req, res) => {
   }
 };
 
-// Get all campaigns and update status if ended
-const getCampaigns = async (req, res) => {
+//edit a Single user
+const editUser = async (req, res) => {
   try {
-    const campaigns = await Campaign.findAll({include:[{ model: Partner }]});
+    const id  = req.params.id;
+    const allowed = [
+      "firstName",
+      "lastName",
+      "email",
+      "gender",
+      "dateOfBirth",
+      "country",
+      "city",
+      "employmentStatus",
+      "educationLevel",
+      "maritalStatus",
+      "hasKids",
+      "salaryRangeMin",
+      "salaryRangeMax",
+      "hasBankAccount",
+      "status",
+      "phone",
+      "role",
+      "rewards",
+    ];
+    const user = await User.findByPk(id);
+    if (!user)
+      return res.status(403).json({ msg: "Cannot edit" });
+
+    allowed.forEach((field) => {
+      if (req.body[field] !== undefined) user[field] = req.body[field];
+    });
+    await user.save();
+    res.json(user);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error" });
+  }
+}
+
+// Get all campaigns and update status if ended
+async function getCampaigns(req, res) {
+  try {
+    const campaigns = await Campaign.findAll({ include: [{ model: Partner }] });
     for (const camp of campaigns) {
       if (camp.endDate && camp.endDate < new Date()) {
         camp.status = "InActive";
@@ -233,7 +275,7 @@ const getCampaigns = async (req, res) => {
     console.error(err);
     res.status(500).json({ error: "Server error" });
   }
-};
+}
 
 // Add mobile provider balance
 const addMobileProvider = async (req, res) => {
@@ -289,6 +331,7 @@ module.exports = {
   editPartner,
   getPartner,
   getUsers,
+  editUser,
   getUser,
   getCampaigns,
   addMobileProvider,
