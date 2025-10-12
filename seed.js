@@ -3,6 +3,9 @@ const shortid = require('shortid');
 const sequelize = require('./config/db');
 const { AdminUser, Partner, Campaign, User, Transaction, MobileProvider } = require('./models');
 
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
+
 // Function to hash passwords
 const hashPassword = async (password) => {
   const salt = await bcrypt.genSalt(10);
