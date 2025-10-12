@@ -10,6 +10,9 @@ const YAML = require('yamljs');
 const swaggerDocument = YAML.load('./swagger.yaml');
 const sequelize = require('./config/db');
 
+//Force DigitalOcean Internal Network SSL workaround
+process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+
 
 (async () => {
   try {
