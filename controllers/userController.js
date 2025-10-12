@@ -34,7 +34,8 @@ const requestOTP = async (req, res) => {
       });
       res.json({ msg: "OTP sent" , otp: otp  /* Remove this line in production */   });
     } catch (err) {
-      res.json({ msg: "failed" , otp: otp  /* Remove this line in production */  });
+      res.json({ msg: "failed" , otp: otp  /* Remove this line in production */  }); /* Remove this line in production */
+      // res.status(500).json({ msg: "Failed to send OTP" }); --- IGNORE ---
     }
   } catch (err) {
     console.error(err);
