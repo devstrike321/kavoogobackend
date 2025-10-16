@@ -31,7 +31,7 @@ const app = express();
 app.use(express.json());
 
 // Set ALLOWED_ORIGINS="http://localhost:3000,https://app.example.com"
-const allowedOrigins = (process.env.ALLOWED_ORIGINS || ['http://localhost:3000', 'https://localhost:5000'])
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000, https://localhost:5000')
   .split(',')
   .map(o => o.trim());
 
