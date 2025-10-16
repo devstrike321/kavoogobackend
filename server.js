@@ -30,11 +30,31 @@ sequelize.sync(); // or sequelize.sync({ force: true }) for development
 const app = express();
 app.use(express.json());
 
-app.use(cors({
-	origin: 'http://localhost:3000',
-	methods: ['GET','POST','PUT','DELETE','OPTIONS','PATCH'],
-	allowedHeaders: ['Content-Type', 'Authorization'],
-}));
+// Set ALLOWED_ORIGINS="http://localhost:3000,https://app.example.com"
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || 'http://localhost:3000')
+  .split(',')
+  .map(o => o.trim());
+
+const corsOptions = {
+  origin: (origin, callback) => {
+    // allow requests with no origin (e.g., curl, Postman)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    console.warn(`Blocked CORS request from origin: ${origin}`);
+    return callback(new Error('Not allowed by CORS'), false);
+  },
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept'],
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
+
+// enable preflight for all routes
+app.options('*', cors(corsOptions));
 
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
